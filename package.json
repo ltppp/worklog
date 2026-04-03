@@ -1,6 +1,6 @@
 {
   "name": "@tianpeng1995/worklog-cli",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "description": "极简的个人工作管理知识库 CLI",
   "keywords": [
     "worklog",
@@ -27,6 +27,7 @@
     "node": ">=14.0.0"
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.0.0"
+    "@inquirer/prompts": "^7.0.0",
+    "ora": "^8.0.0"
   }
 }

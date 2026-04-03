@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { checkbox } = require('@inquirer/prompts');
+const ora = require('ora');
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
@@ -14,7 +15,8 @@ const colors = {
   gray: (text) => `\x1b[90m${text}\x1b[0m`,
   red: (text) => `\x1b[31m${text}\x1b[0m`,
   cyan: (text) => `\x1b[36m${text}\x1b[0m`,
-  yellow: (text) => `\x1b[33m${text}\x1b[0m`
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`,
+  bold: (text) => `\x1b[1m${text}\x1b[0m`
 };
 
 // 工具配置
@@ -112,6 +114,21 @@ function showVersion() {
   console.log(pkg.version);
 }
 
+// 自定义 spinner 帧 - 模拟 OpenSpec 的效果
+const customSpinner = {
+  interval: 120,
+  frames: [
+    ' ░░░░ ',
+    ' ▓░░░ ',
+    ' ▓▓░░ ',
+    ' ▓▓▓░ ',
+    ' ▓▓▓▓ ',
+    ' ░▓▓▓ ',
+    ' ░░▓▓ ',
+    ' ░░░▓ ',
+  ]
+};
+
 // 交互式选择工具（使用 inquirer）
 async function selectTools() {
   const toolIds = ['claude', 'codex', 'cursor'];
@@ -131,7 +148,12 @@ async function selectTools() {
 }
 
 // 安装技能到指定工具
-function installSkillsToTools(vaultPath, selectedTools) {
+async function installSkillsToTools(vaultPath, selectedTools) {
+  const spinner = ora({
+    text: '正在安装技能...',
+    spinner: customSpinner
+  }).start();
+
   for (const toolId of selectedTools) {
     const tool = TOOLS[toolId];
     const skillsDir = tool.getSkillsDir(vaultPath);
@@ -141,7 +163,7 @@ function installSkillsToTools(vaultPath, selectedTools) {
       fs.mkdirSync(skillsDir, { recursive: true });
     }
 
-    console.log(colors.blue(`\n📦 安装技能到 ${tool.name}\n`));
+    spinner.text = `正在安装到 ${tool.name}...`;
 
     for (const skill of SKILLS) {
       const templatePath = path.join(TEMPLATES_DIR, `${skill.id}.md`);
@@ -153,9 +175,10 @@ function installSkillsToTools(vaultPath, selectedTools) {
       const content = tool.formatFile(skill.id, skill.desc, body);
 
       fs.writeFileSync(targetPath, content);
-      console.log(colors.green(`  ✓ worklog:${skill.id}`));
     }
   }
+
+  spinner.succeed('技能安装完成');
 }
 
 // 查找知识库路径
@@ -207,76 +230,84 @@ function detectInstalledTools(vaultPath) {
   return installed;
 }
 
-// 显示欢迎信息
-function showWelcome() {
-  console.log(`
-                        ${colors.cyan('欢迎使用 worklog')}
-                        极简的个人工作管理知识库
+// 显示欢迎信息（带动画）
+async function showWelcome() {
+  const frames = customSpinner.frames;
+  const lines = [
+    '                        欢迎使用 worklog',
+    '                        极简的个人工作管理知识库',
+    '',
+    '        ' + colors.cyan('████') + '            此设置将配置:',
+    '                          • AI 工具的技能文件',
+    '        ' + colors.cyan('████') + '              • /worklog:* 斜杠命令',
+    '        ' + colors.cyan('████') + '',
+    '        ' + colors.cyan('████') + '            设置后快速开始:',
+    '                          • /worklog:log      写日报',
+    '        ' + colors.cyan('░░░░') + '              • /worklog:note     快速笔记',
+    '                          • /worklog:project  同步项目',
+    ''
+  ];
 
-        ░░░░            此设置将配置:
-                          • AI 工具的技能文件
-        ████              • /worklog:* 斜杠命令
-        ████
-        ████            设置后快速开始:
-                          /worklog:log      写日报
-        ░░░░              /worklog:note     快速笔记
-                          /worklog:project  同步项目
-`);
+  // 清屏并显示欢迎信息
+  console.clear();
+  console.log(lines.join('\n'));
+
+  // 短暂停顿让用户看到欢迎信息
+  await new Promise(resolve => setTimeout(resolve, 800));
 }
 
 // 显示完成信息
 function showComplete(selectedTools) {
   const toolNames = selectedTools.map(t => TOOLS[t].name).join(', ');
 
-  console.log(colors.green(`
-✨ 设置完成
-
-已安装：${toolNames}
-4 个技能文件
-
-开始使用：
-  ${colors.cyan('/worklog:log')}         写日报
-  ${colors.cyan('/worklog:note xxx')}    快速笔记
-  ${colors.cyan('/worklog:project')}     同步项目
-  ${colors.cyan('/worklog:summarize')}   整理笔记
-
-重启您的 AI 工具以使斜杠命令生效。
-`));
+  console.log('');
+  console.log(colors.green('  ✨ 设置完成'));
+  console.log('');
+  console.log(colors.gray(`  已安装：${toolNames}`));
+  console.log(colors.gray('  4 个技能文件'));
+  console.log('');
+  console.log(colors.bold('  开始使用：'));
+  console.log(colors.cyan('    /worklog:log         写日报'));
+  console.log(colors.cyan('    /worklog:note xxx    快速笔记'));
+  console.log(colors.cyan('    /worklog:project     同步项目'));
+  console.log(colors.cyan('    /worklog:summarize   整理笔记'));
+  console.log('');
+  console.log(colors.gray('  重启您的 AI 工具以使斜杠命令生效。'));
+  console.log('');
 }
 
 // init 命令
 async function init(vaultPath) {
-  showWelcome();
+  await showWelcome();
 
-  console.log(colors.gray(`目标路径: ${vaultPath}\n`));
+  console.log(colors.gray(`  目标路径: ${vaultPath}\n`));
 
   // 1. 创建目录结构
+  const spinner = ora({
+    text: '创建目录结构...',
+    spinner: customSpinner
+  }).start();
+
   const dirs = ['日记', '项目', '资源', '画布'];
   for (const dir of dirs) {
     const dirPath = path.join(vaultPath, dir);
-    if (fs.existsSync(dirPath) && !force) {
-      console.log(colors.gray(`  ○ ${dir}/ (已存在)`));
-    } else {
-      if (!fs.existsSync(dirPath)) {
-        fs.mkdirSync(dirPath, { recursive: true });
-      }
-      console.log(colors.green(`  ✓ ${dir}/`));
+    if (!fs.existsSync(dirPath)) {
+      fs.mkdirSync(dirPath, { recursive: true });
     }
   }
 
+  spinner.succeed('目录结构创建完成');
+
   // 2. 创建 CLAUDE.md
   const claudeMdPath = path.join(vaultPath, 'CLAUDE.md');
-  if (fs.existsSync(claudeMdPath) && !force) {
-    console.log(colors.gray(`  ○ CLAUDE.md (已存在)`));
-  } else {
+  if (!fs.existsSync(claudeMdPath) || force) {
     const claudeMdTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'CLAUDE.md'), 'utf-8');
     fs.writeFileSync(claudeMdPath, claudeMdTemplate);
-    console.log(colors.green(`  ✓ CLAUDE.md`));
   }
 
   // 3. 选择工具并安装技能
   const selectedTools = await selectTools();
-  installSkillsToTools(vaultPath, selectedTools);
+  await installSkillsToTools(vaultPath, selectedTools);
 
   // 4. 创建今日日记
   const today = new Date().toISOString().split('T')[0];
@@ -294,7 +325,7 @@ async function init(vaultPath) {
 ## 明天继续
 `;
     fs.writeFileSync(diaryPath, diaryTemplate);
-    console.log(colors.green(`\n  ✓ 日记/${today}.md`));
+    console.log(colors.green(`  ✓ 日记/${today}.md`));
   }
 
   // 5. 完成
@@ -302,7 +333,7 @@ async function init(vaultPath) {
 }
 
 // update 命令
-function update() {
+async function update() {
   console.log(colors.blue('\n📦 更新 worklog 技能\n'));
 
   const vaultPath = findVaultPath();
@@ -320,7 +351,7 @@ function update() {
 
   console.log(colors.gray(`检测到已安装的工具: ${installedTools.map(t => TOOLS[t].name).join(', ')}\n`));
 
-  installSkillsToTools(vaultPath, installedTools);
+  await installSkillsToTools(vaultPath, installedTools);
   console.log(colors.green('\n✨ 更新完成！\n'));
 }
 
