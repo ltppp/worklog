@@ -14,7 +14,8 @@ const colors = {
   gray: (text) => `\x1b[90m${text}\x1b[0m`,
   red: (text) => `\x1b[31m${text}\x1b[0m`,
   cyan: (text) => `\x1b[36m${text}\x1b[0m`,
-  yellow: (text) => `\x1b[33m${text}\x1b[0m`
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`,
+  bold: (text) => `\x1b[1m${text}\x1b[0m`
 };
 
 // 工具配置
@@ -23,10 +24,15 @@ const TOOLS = {
     name: 'Claude Code',
     getSkillsDir: (vaultPath) => path.join(os.homedir(), '.claude', 'commands', 'worklog'),
     getFilename: (id) => `${id}.md`,
-    formatFrontmatter: (id, desc) => `---
+    formatFile: (id, desc, body) => {
+      const escapedDesc = desc.includes('"') ? desc.replace(/"/g, '\\"') : desc;
+      return `---
 name: worklog:${id}
-description: "${desc}"
----`
+description: "${escapedDesc}"
+---
+
+${body}`;
+    }
   },
   codex: {
     name: 'Codex',
@@ -35,21 +41,28 @@ description: "${desc}"
       return path.join(codexHome, 'prompts');
     },
     getFilename: (id) => `worklog-${id}.md`,
-    formatFrontmatter: (id, desc) => `---
+    formatFile: (id, desc, body) => `---
 description: ${desc}
 argument-hint: command arguments
----`
+---
+
+${body}`
   },
   cursor: {
     name: 'Cursor',
     getSkillsDir: (vaultPath) => path.join(vaultPath, '.cursor', 'commands'),
     getFilename: (id) => `worklog-${id}.md`,
-    formatFrontmatter: (id, desc) => `---
+    formatFile: (id, desc, body) => {
+      const escapedDesc = desc.includes('"') ? desc.replace(/"/g, '\\"') : desc;
+      return `---
 name: /worklog-${id}
 id: worklog-${id}
 category: Worklog
-description: "${desc}"
----`
+description: "${escapedDesc}"
+---
+
+${body}`;
+    }
   }
 };
 
@@ -115,28 +128,37 @@ function showVersion() {
   console.log(pkg.version);
 }
 
-// 交互式选择工具
+// 交互式选择工具（改进版）
 async function selectTools() {
   const toolIds = ['claude', 'codex', 'cursor'];
 
   console.log(colors.blue('\n🤖 选择要安装的 AI 工具\n'));
-  console.log(colors.gray('输入 y 确认安装，n 跳过\n'));
 
-  const selected = [];
+  for (let i = 0; i < toolIds.length; i++) {
+    const tool = TOOLS[toolIds[i]];
+    console.log(`  ${colors.cyan(i + 1 + '.')} ${tool.name}`);
+  }
+  console.log(`  ${colors.cyan('4.')} 全部安装\n`);
 
-  for (const toolId of toolIds) {
-    const tool = TOOLS[toolId];
-    const answer = await question(`  安装 ${tool.name}? (y/n) [y]: `);
-    if (answer === '' || answer.toLowerCase() === 'y') {
-      selected.push(toolId);
-    }
+  const answer = await question(`请输入编号（可多选，用逗号分隔，如 1,3 或 4）: `);
+
+  let selected = [];
+
+  if (answer === '4' || answer === '') {
+    // 默认全部安装
+    selected = toolIds;
+  } else {
+    const nums = answer.split(/[,\s]+/).map(n => parseInt(n.trim())).filter(n => n >= 1 && n <= 3);
+    selected = [...new Set(nums.map(n => toolIds[n - 1]))];
   }
 
-  // 默认至少选一个
+  // 至少选一个
   if (selected.length === 0) {
-    console.log(colors.yellow('\n  未选择任何工具，默认安装 Claude Code'));
-    selected.push('claude');
+    console.log(colors.yellow('\n未选择有效编号，默认安装 Claude Code'));
+    selected = ['claude'];
   }
+
+  console.log(colors.green(`\n已选择: ${selected.map(t => TOOLS[t].name).join(', ')}`));
 
   return selected;
 }
@@ -159,11 +181,11 @@ function installSkillsToTools(vaultPath, selectedTools) {
       let body = fs.readFileSync(templatePath, 'utf-8');
       body = body.replace(/{{VAULT_PATH}}/g, vaultPath);
 
-      const frontmatter = tool.formatFrontmatter(skill.id, skill.desc);
       const filename = tool.getFilename(skill.id);
       const targetPath = path.join(skillsDir, filename);
+      const content = tool.formatFile(skill.id, skill.desc, body);
 
-      fs.writeFileSync(targetPath, `${frontmatter}\n\n${body}`);
+      fs.writeFileSync(targetPath, content);
       console.log(colors.green(`  ✓ worklog:${skill.id}`));
     }
   }
