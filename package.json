@@ -1,17 +1,23 @@
 {
-  "name": "worklog",
+  "name": "@tianpeng1995/worklog-cli",
   "version": "1.0.0",
   "description": "极简的个人工作管理知识库 CLI",
-  "keywords": ["worklog", "obsidian", "diary", "knowledge-base", "claude-code"],
+  "keywords": [
+    "worklog",
+    "obsidian",
+    "diary",
+    "knowledge-base",
+    "claude-code"
+  ],
   "homepage": "https://github.com/ltppp/worklog",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ltppp/worklog"
+    "url": "git+https://github.com/ltppp/worklog.git"
   },
   "license": "MIT",
   "author": "liutianpeng",
   "bin": {
-    "worklog": "./bin/worklog.js"
+    "worklog": "bin/worklog.js"
   },
   "files": [
     "bin",

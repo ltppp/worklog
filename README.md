@@ -1,13 +1,13 @@
-# worklog
+# @tianpeng1995/worklog-cli
 
-极简的个人工作管理知识库。
+极简的个人工作管理知识库 CLI。
 
 **只需记住一件事：打开今天的文件，写。**
 
 ## 安装
 
 ```bash
-npm install -g worklog
+npm install -g @tianpeng1995/worklog-cli
 ```
 
 ## 快速开始
