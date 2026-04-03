@@ -1,14 +1,10 @@
 #!/usr/bin/env node
 
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
-import { fileURLToPath } from 'url';
-import { checkbox } from '@inquirer/prompts';
-import ora from 'ora';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const { checkbox } = require('@inquirer/prompts');
+const ora = require('ora');
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
@@ -114,11 +110,26 @@ ${colors.blue('命令:')}
 
 // 版本信息
 function showVersion() {
-  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf-8'));
+  const pkg = require('../package.json');
   console.log(pkg.version);
 }
 
-// 交互式选择工具
+// 自定义 spinner 帧 - 模拟 OpenSpec 的效果
+const customSpinner = {
+  interval: 120,
+  frames: [
+    ' ░░░░ ',
+    ' ▓░░░ ',
+    ' ▓▓░░ ',
+    ' ▓▓▓░ ',
+    ' ▓▓▓▓ ',
+    ' ░▓▓▓ ',
+    ' ░░▓▓ ',
+    ' ░░░▓ ',
+  ]
+};
+
+// 交互式选择工具（使用 inquirer）
 async function selectTools() {
   const toolIds = ['claude', 'codex', 'cursor'];
 
@@ -127,7 +138,7 @@ async function selectTools() {
     choices: toolIds.map(id => ({
       name: TOOLS[id].name,
       value: id,
-      checked: id === 'claude'
+      checked: id === 'claude' // 默认选中 Claude Code
     })),
     instructions: false,
     required: true
@@ -138,12 +149,16 @@ async function selectTools() {
 
 // 安装技能到指定工具
 async function installSkillsToTools(vaultPath, selectedTools) {
-  const spinner = ora('正在安装技能...').start();
+  const spinner = ora({
+    text: '正在安装技能...',
+    spinner: customSpinner
+  }).start();
 
   for (const toolId of selectedTools) {
     const tool = TOOLS[toolId];
     const skillsDir = tool.getSkillsDir(vaultPath);
 
+    // 确保目录存在
     if (!fs.existsSync(skillsDir)) {
       fs.mkdirSync(skillsDir, { recursive: true });
     }
@@ -168,6 +183,7 @@ async function installSkillsToTools(vaultPath, selectedTools) {
 
 // 查找知识库路径
 function findVaultPath() {
+  // 1. 检查当前目录是否有 worklog 结构
   let currentDir = process.cwd();
   const dirs = ['日记', '项目', '资源', '画布'];
 
@@ -179,6 +195,7 @@ function findVaultPath() {
     currentDir = path.dirname(currentDir);
   }
 
+  // 2. 从已安装的技能文件中读取 VAULT_PATH（检查所有工具）
   for (const toolId of ['claude', 'codex', 'cursor']) {
     const tool = TOOLS[toolId];
     const skillsDir = tool.getSkillsDir('');
@@ -213,8 +230,9 @@ function detectInstalledTools(vaultPath) {
   return installed;
 }
 
-// 显示欢迎信息
+// 显示欢迎信息（带动画）
 async function showWelcome() {
+  const frames = customSpinner.frames;
   const lines = [
     '                        欢迎使用 worklog',
     '                        极简的个人工作管理知识库',
@@ -230,8 +248,11 @@ async function showWelcome() {
     ''
   ];
 
+  // 清屏并显示欢迎信息
   console.clear();
   console.log(lines.join('\n'));
+
+  // 短暂停顿让用户看到欢迎信息
   await new Promise(resolve => setTimeout(resolve, 800));
 }
 
@@ -261,7 +282,11 @@ async function init(vaultPath) {
 
   console.log(colors.gray(`  目标路径: ${vaultPath}\n`));
 
-  const spinner = ora('创建目录结构...').start();
+  // 1. 创建目录结构
+  const spinner = ora({
+    text: '创建目录结构...',
+    spinner: customSpinner
+  }).start();
 
   const dirs = ['日记', '项目', '资源', '画布'];
   for (const dir of dirs) {
@@ -273,15 +298,18 @@ async function init(vaultPath) {
 
   spinner.succeed('目录结构创建完成');
 
+  // 2. 创建 CLAUDE.md
   const claudeMdPath = path.join(vaultPath, 'CLAUDE.md');
   if (!fs.existsSync(claudeMdPath) || force) {
     const claudeMdTemplate = fs.readFileSync(path.join(TEMPLATES_DIR, 'CLAUDE.md'), 'utf-8');
     fs.writeFileSync(claudeMdPath, claudeMdTemplate);
   }
 
+  // 3. 选择工具并安装技能
   const selectedTools = await selectTools();
   await installSkillsToTools(vaultPath, selectedTools);
 
+  // 4. 创建今日日记
   const today = new Date().toISOString().split('T')[0];
   const diaryPath = path.join(vaultPath, '日记', `${today}.md`);
   if (!fs.existsSync(diaryPath)) {
@@ -300,6 +328,7 @@ async function init(vaultPath) {
     console.log(colors.green(`  ✓ 日记/${today}.md`));
   }
 
+  // 5. 完成
   showComplete(selectedTools);
 }
 
