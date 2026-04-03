@@ -3,7 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const readline = require('readline');
+const { checkbox } = require('@inquirer/prompts');
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
@@ -14,8 +14,7 @@ const colors = {
   gray: (text) => `\x1b[90m${text}\x1b[0m`,
   red: (text) => `\x1b[31m${text}\x1b[0m`,
   cyan: (text) => `\x1b[36m${text}\x1b[0m`,
-  yellow: (text) => `\x1b[33m${text}\x1b[0m`,
-  bold: (text) => `\x1b[1m${text}\x1b[0m`
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`
 };
 
 // 工具配置
@@ -80,21 +79,6 @@ const command = args[0];
 const targetPath = args[1];
 const force = args.includes('-f') || args.includes('--force');
 
-// 创建 readline 接口
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
-
-// 提问函数
-function question(prompt) {
-  return new Promise((resolve) => {
-    rl.question(prompt, (answer) => {
-      resolve(answer.trim());
-    });
-  });
-}
-
 // 帮助信息
 function showHelp() {
   console.log(`
@@ -128,37 +112,20 @@ function showVersion() {
   console.log(pkg.version);
 }
 
-// 交互式选择工具（改进版）
+// 交互式选择工具（使用 inquirer）
 async function selectTools() {
   const toolIds = ['claude', 'codex', 'cursor'];
 
-  console.log(colors.blue('\n🤖 选择要安装的 AI 工具\n'));
-
-  for (let i = 0; i < toolIds.length; i++) {
-    const tool = TOOLS[toolIds[i]];
-    console.log(`  ${colors.cyan(i + 1 + '.')} ${tool.name}`);
-  }
-  console.log(`  ${colors.cyan('4.')} 全部安装\n`);
-
-  const answer = await question(`请输入编号（可多选，用逗号分隔，如 1,3 或 4）: `);
-
-  let selected = [];
-
-  if (answer === '4' || answer === '') {
-    // 默认全部安装
-    selected = toolIds;
-  } else {
-    const nums = answer.split(/[,\s]+/).map(n => parseInt(n.trim())).filter(n => n >= 1 && n <= 3);
-    selected = [...new Set(nums.map(n => toolIds[n - 1]))];
-  }
-
-  // 至少选一个
-  if (selected.length === 0) {
-    console.log(colors.yellow('\n未选择有效编号，默认安装 Claude Code'));
-    selected = ['claude'];
-  }
-
-  console.log(colors.green(`\n已选择: ${selected.map(t => TOOLS[t].name).join(', ')}`));
+  const selected = await checkbox({
+    message: '选择要安装的 AI 工具',
+    choices: toolIds.map(id => ({
+      name: TOOLS[id].name,
+      value: id,
+      checked: id === 'claude' // 默认选中 Claude Code
+    })),
+    instructions: false,
+    required: true
+  });
 
   return selected;
 }
@@ -240,9 +207,47 @@ function detectInstalledTools(vaultPath) {
   return installed;
 }
 
+// 显示欢迎信息
+function showWelcome() {
+  console.log(`
+                        ${colors.cyan('欢迎使用 worklog')}
+                        极简的个人工作管理知识库
+
+        ░░░░            此设置将配置:
+                          • AI 工具的技能文件
+        ████              • /worklog:* 斜杠命令
+        ████
+        ████            设置后快速开始:
+                          /worklog:log      写日报
+        ░░░░              /worklog:note     快速笔记
+                          /worklog:project  同步项目
+`);
+}
+
+// 显示完成信息
+function showComplete(selectedTools) {
+  const toolNames = selectedTools.map(t => TOOLS[t].name).join(', ');
+
+  console.log(colors.green(`
+✨ 设置完成
+
+已安装：${toolNames}
+4 个技能文件
+
+开始使用：
+  ${colors.cyan('/worklog:log')}         写日报
+  ${colors.cyan('/worklog:note xxx')}    快速笔记
+  ${colors.cyan('/worklog:project')}     同步项目
+  ${colors.cyan('/worklog:summarize')}   整理笔记
+
+重启您的 AI 工具以使斜杠命令生效。
+`));
+}
+
 // init 命令
 async function init(vaultPath) {
-  console.log(colors.blue('\n📁 初始化 worklog 知识库\n'));
+  showWelcome();
+
   console.log(colors.gray(`目标路径: ${vaultPath}\n`));
 
   // 1. 创建目录结构
@@ -293,15 +298,7 @@ async function init(vaultPath) {
   }
 
   // 5. 完成
-  console.log(colors.green('\n✨ 初始化完成！\n'));
-  console.log(colors.gray('开始使用：'));
-  console.log(colors.cyan('  /worklog:log         写日报'));
-  console.log(colors.cyan('  /worklog:note xxx    快速笔记'));
-  console.log(colors.cyan('  /worklog:project     同步项目'));
-  console.log(colors.cyan('  /worklog:summarize   整理笔记'));
-  console.log();
-
-  rl.close();
+  showComplete(selectedTools);
 }
 
 // update 命令
