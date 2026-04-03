@@ -1,4 +1,6 @@
-# @tianpeng1995/worklog-cli
+# worklog-cli
+
+> npm 包: [@tianpeng1995/worklog-cli](https://www.npmjs.com/package/@tianpeng1995/worklog-cli)
 
 [![npm version](https://img.shields.io/npm/v/@tianpeng1995/worklog-cli.svg)](https://www.npmjs.com/package/@tianpeng1995/worklog-cli)
 [![npm downloads](https://img.shields.io/npm/dm/@tianpeng1995/worklog-cli.svg)](https://www.npmjs.com/package/@tianpeng1995/worklog-cli)
