@@ -153,9 +153,75 @@ aliases:
 
 如果用户选择创建画布：
 
-1. 创建 `VAULT_PATH/画布/{项目名}架构.canvas`
-2. 画布内容包含项目模块和关系
-3. 在项目文档中使用 embed：`![[{项目名}架构.canvas]]`
+**创建文件：** `VAULT_PATH/画布/{项目名}架构.canvas`
+
+**Canvas JSON 格式规范：**
+
+```json
+{
+  "nodes": [
+    {
+      "id": "node-1",
+      "type": "text",
+      "x": 0,
+      "y": 0,
+      "width": 250,
+      "height": 60,
+      "text": "节点名称",
+      "color": "1"
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-1",
+      "fromNode": "node-1",
+      "toNode": "node-2",
+      "fromSide": "right",
+      "toSide": "left"
+    }
+  ]
+}
+```
+
+**节点类型：**
+- `type: "text"` — 文本节点，必须有 `text` 属性
+- `type: "file"` — 文件节点，必须有 `file` 属性（相对路径）
+- `type: "group"` — 分组节点，必须有 `label` 和 `size` 属性
+
+**节点属性：**
+- `id` — 唯一标识，格式：`node-1`、`node-2`
+- `x`, `y` — 坐标位置（水平布局，间距 300）
+- `width`, `height` — 尺寸（文本节点：250×60，分组节点：400×300）
+- `color` — 颜色：`"1"`（红）、`"2"`（橙）、`"3"`（黄）、`"4"`（绿）、`"5"`（蓝）、`"6"`（紫）
+
+**连线属性：**
+- `id` — 唯一标识，格式：`edge-1`、`edge-2`
+- `fromNode`, `toNode` — 源/目标节点ID
+- `fromSide`, `toSide` — 方向：`"left"`、`"right"`、`"top"`、`"bottom"`
+
+**架构图示例：**
+
+对于一个 API 后端项目，创建如下架构：
+
+```json
+{
+  "nodes": [
+    {"id": "client", "type": "text", "x": 0, "y": 120, "width": 200, "height": 60, "text": "客户端\nWeb/App", "color": "4"},
+    {"id": "api", "type": "text", "x": 300, "y": 120, "width": 200, "height": 60, "text": "API 服务\nGo + gRPC", "color": "5"},
+    {"id": "db", "type": "text", "x": 600, "y": 120, "width": 200, "height": 60, "text": "数据库\nMongoDB", "color": "6"}
+  ],
+  "edges": [
+    {"id": "edge-1", "fromNode": "client", "toNode": "api", "fromSide": "right", "toSide": "left"},
+    {"id": "edge-2", "fromNode": "api", "toNode": "db", "fromSide": "right", "toSide": "left"}
+  ]
+}
+```
+
+**注意事项：**
+- 水平布局：x 坐标从 0 开始，每个节点间隔 300
+- 垂直居中：y 坐标约 120
+- 节点文字使用 `\n` 换行，格式：`名称\n技术栈`
+- 写入文件时使用 `JSON.stringify(canvasData, null, 0)` 压缩格式
 
 ---
 
