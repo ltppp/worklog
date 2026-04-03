@@ -10,7 +10,7 @@ description: "整理本周笔记到资源。当用户想整理笔记、把日记
 ## 配置
 
 ```
-VAULT_PATH = "/Users/liutianpeng/projects/worklog"
+VAULT_PATH = "{{VAULT_PATH}}"
 ```
 
 ## 用法

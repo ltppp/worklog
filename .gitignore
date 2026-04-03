@@ -1,8 +1,17 @@
-# macOS
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# OS files
 .DS_Store
 
-# Obsidian workspace
-.obsidian/
+# IDE
+.idea/
+.vscode/
+*.swp
 
-# 临时文件
-*.tmp
+# Logs
+*.log
+npm-debug.log*

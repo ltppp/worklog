@@ -10,7 +10,7 @@ description: "快速笔记。当用户想快速记一个想法、知识点、技
 ## 配置
 
 ```
-VAULT_PATH = "/Users/liutianpeng/projects/worklog"
+VAULT_PATH = "{{VAULT_PATH}}"
 ```
 
 ## 用法

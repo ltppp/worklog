@@ -10,7 +10,7 @@ description: "同步项目文档。当用户想更新项目文档、同步代码
 ## 配置
 
 ```
-VAULT_PATH = "/Users/liutianpeng/projects/worklog"
+VAULT_PATH = "{{VAULT_PATH}}"
 ```
 
 ## 流程

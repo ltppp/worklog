@@ -9,20 +9,8 @@ description: "写日报。当用户想记录今天的工作、写日报、汇报
 
 ## 配置
 
-在 `~/.claude/settings.json` 中配置：
-
-```json
-{
-  "env": {
-    "WORKLOG_VAULT_PATH": "/Users/你的用户名/projects/worklog"
-  }
-}
 ```
-
-或直接修改下方路径：
-
-```
-VAULT_PATH = "/Users/liutianpeng/projects/worklog"
+VAULT_PATH = "{{VAULT_PATH}}"
 ```
 
 ## 流程
