@@ -466,16 +466,25 @@ async function init(vaultPath) {
   const today = new Date().toISOString().split('T')[0];
   const diaryPath = path.join(vaultPath, '日记', `${today}.md`);
   if (!fs.existsSync(diaryPath)) {
-    const diaryTemplate = `# ${today}
+    const diaryTemplate = `---
+title: ${today}
+date: ${today}
+tags:
+  - diary
+aliases:
+  - 今天
+---
 
-## 今天要做的
-- [ ]
+# ${today}
 
-## 工作记录
+> [!todo] 今天要做的
+> - [ ]
 
-## 笔记
+> [!tip]+ 工作记录
 
-## 明天继续
+> [!note]- 笔记
+
+> [!warning] 明天继续
 `;
     fs.writeFileSync(diaryPath, diaryTemplate);
     console.log(colors.green(`  ✓ 日记/${today}.md`));
