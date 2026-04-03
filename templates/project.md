@@ -1,6 +1,6 @@
 # worklog:project — 同步项目文档
 
-检测当前项目，分析代码库，更新项目文档。
+深度分析代码库，生成完整项目文档。
 
 <!-- Obsidian 格式参考：~/.claude/skills/obsidian-markdown -->
 
@@ -23,18 +23,45 @@ VAULT_PATH = "{{VAULT_PATH}}"
 
 ---
 
-### 阶段 2：代码库分析
+### 阶段 2：深度代码分析
 
-- 技术栈：读取 `go.mod`、`package.json`、`requirements.txt` 等
-- 目录结构：扫描 1-2 层
-- git 历史：`git log --oneline -10`
-- 关键文件：识别入口点、主要模块
+**依次执行以下分析，每项约 10-20 秒：**
+
+#### 2.1 基本信息
+- 读取 `README.md`、`package.json`、`go.mod`、`requirements.txt` 等
+- 提取项目名称、描述、版本、依赖
+
+#### 2.2 目录结构
+- 扫描 2-3 层目录
+- 识别标准目录：`src/`、`lib/`、`cmd/`、`api/`、`handler/`、`service/`、`model/`、`db/` 等
+- 过滤掉 `node_modules/`、`vendor/`、`.git/` 等
+
+#### 2.3 API 接口
+- **Go**: 扫描路由注册（`gin.`, `http.HandleFunc`, `mux.HandleFunc`）
+- **Node.js**: 扫描 `app.get/post/put/delete`、`router.*/**`
+- **Python**: 扫描 `@app.route`、`@router.get/post`、FastAPI 路由
+- 提取：方法、路径、Handler 函数名
+
+#### 2.4 数据模型
+- **Go**: 扫描 `struct` 定义，识别数据库标签（`gorm:""`, `json:""`）
+- **Node.js**: 扫描 `schema`、`model` 定义，Sequelize/Mongoose
+- **Python**: 扫描 `models.py`、SQLAlchemy Model、Pydantic
+- 提取：模型名、字段列表
+
+#### 2.5 关键文件
+- 入口文件：`main.go`、`index.js`、`app.py`、`main.py`
+- 配置文件：`config.*`、`.env.example`
+- 核心模块：`service/`、`handler/`、`controller/` 下的主要文件
+
+#### 2.6 开发配置
+- 读取 `package.json scripts`、`Makefile`、`docker-compose.yml`
+- 提取：启动命令、测试命令、Docker 配置
 
 ---
 
 ### 阶段 3：操作菜单
 
-**使用 AskUserQuestion 工具呈现选项，让用户点击选择：**
+**使用 AskUserQuestion 工具呈现选项：**
 
 **已存在项目文件时：**
 ```json
@@ -43,12 +70,11 @@ VAULT_PATH = "{{VAULT_PATH}}"
     "header": "操作",
     "multiSelect": false,
     "options": [
-      {"label": "更新描述与技术栈", "description": "刷新项目信息"},
-      {"label": "更新关键文件表格", "description": "刷新文件列表"},
-      {"label": "创建架构画布", "description": "生成 .canvas 文件"},
-      {"label": "完整同步", "description": "执行全部操作"}
+      {"label": "快速更新", "description": "只更新基本信息和技术栈"},
+      {"label": "完整同步", "description": "重新分析 API、模型、结构"},
+      {"label": "创建架构画布", "description": "生成 .canvas 文件"}
     ],
-    "question": "请选择要执行的操作？"
+    "question": "请选择操作？"
   }]
 }
 ```
@@ -60,19 +86,20 @@ VAULT_PATH = "{{VAULT_PATH}}"
     "header": "操作",
     "multiSelect": false,
     "options": [
-      {"label": "创建项目文档", "description": "生成 {项目名}.md"},
-      {"label": "创建文档 + 架构画布", "description": "同时创建 .md 和 .canvas"}
+      {"label": "创建完整文档", "description": "深度分析生成完整文档"},
+      {"label": "创建简洁文档", "description": "只生成基本信息"},
+      {"label": "创建文档 + 画布", "description": "同时生成 .md 和 .canvas"}
     ],
-    "question": "项目文件夹为空，请选择操作？"
+    "question": "项目文档不存在，请选择？"
   }]
 }
 ```
 
 ---
 
-### 阶段 4：读取或创建项目文档
+### 阶段 4：生成项目文档
 
-**如果不存在，创建完整 Obsidian 格式：**
+**完整文档模板：**
 
 ```markdown
 ---
@@ -81,26 +108,90 @@ date: YYYY-MM-DD
 tags:
   - project
 aliases:
-  - {别名1}
-  - {别名2}
+  - {别名}
 ---
 
 # {项目名}
 
-一句话描述。
+{一句话描述}
 
-**Location:** `/{绝对路径}`
+**核心功能：**
+- 功能 1
+- 功能 2
+
+## 基本信息
+
+| 属性 | 值 |
+|------|-----|
+| **Location** | `/{绝对路径}` |
+| **语言** | {语言} {版本} |
+| **框架** | {框架} |
+| **数据库** | {数据库} |
 
 > [!abstract] 技术栈
 > - {语言} {版本}
 > - {框架}
 > - {数据库}
+> - {其他依赖}
 
-> [!info] 关键文件
+> [!info] 目录结构
+> ```
+> {项目名}/
+> ├── cmd/                # 入口
+> ├── internal/
+> │   ├── handler/        # HTTP 处理器
+> │   ├── service/        # 业务逻辑
+> │   └── model/          # 数据模型
+> ├── pkg/                # 公共库
+> ├── config/             # 配置
+> └── go.mod
+> ```
+
+> [!example] API 接口
+> | 方法 | 路径 | 说明 | Handler |
+> |------|------|------|---------|
+> | GET | `/api/users` | 获取用户列表 | `GetUsers` |
+> | POST | `/api/users` | 创建用户 | `CreateUser` |
+> | GET | `/api/users/:id` | 获取用户详情 | `GetUser` |
+> | PUT | `/api/users/:id` | 更新用户 | `UpdateUser` |
+> | DELETE | `/api/users/:id` | 删除用户 | `DeleteUser` |
+
+> [!note] 数据模型
+> **User** — 用户模型
+> | 字段 | 类型 | 说明 |
+> |------|------|------|
+> | id | uint | 主键 |
+> | username | string | 用户名 |
+> | email | string | 邮箱 |
+> | created_at | time | 创建时间 |
+
+> [!tip] 关键文件
 > | 文件 | 作用 |
 > |------|------|
-> | `main.go` | 入口 |
-> | `service/` | 业务逻辑 |
+> | `cmd/server/main.go` | 服务入口 |
+> | `internal/handler/user.go` | 用户接口处理 |
+> | `internal/service/auth.go` | 认证逻辑 |
+> | `config/config.yaml` | 配置文件 |
+
+> [!success] 开发指引
+> **本地启动：**
+> ```bash
+> go run cmd/server/main.go
+> # 或
+> make dev
+> ```
+>
+> **运行测试：**
+> ```bash
+> go test ./...
+> # 或
+> make test
+> ```
+>
+> **Docker：**
+> ```bash
+> docker-compose up -d
+> ```
 
 > [!example] 架构
 > 画布：![[{项目名}架构.canvas]]
@@ -109,132 +200,90 @@ aliases:
 > - 重要决策、踩坑记录
 ```
 
-**如果已存在：**
-- 先读取文件，了解已有格式风格
-- 保持与已有 frontmatter 和 callouts 结构一致
-- 如果项目文档没有使用 callouts 格式，保持原格式不变
-
 ---
 
-### 阶段 5：更新内容
-
-**更新技术栈 callout：**
-
-找到 `> [!abstract] 技术栈` 块，更新内容：
-
-```markdown
-> [!abstract] 技术栈
-> - Go 1.20
-> - MongoDB 6.0
-> - gRPC
-> - Docker
-```
-
-**更新关键文件表格：**
-
-找到 `> [!info] 关键文件` 块，更新表格：
-
-```markdown
-> [!info] 关键文件
-> | 文件 | 作用 |
-> |------|------|
-> | `main.go` | 服务入口 |
-> | `service/auth.go` | 认证逻辑 |
-> | `db/mongo.go` | 数据库连接 |
-```
-
-**注意：**
-- callout 内表格每行以 `> ` 开头
-- 保持格式一致
-
----
-
-### 阶段 6：创建架构画布（可选）
-
-如果用户选择创建画布：
+### 阶段 5：创建架构画布
 
 **创建文件：** `VAULT_PATH/画布/{项目名}架构.canvas`
 
-**Canvas JSON 格式规范：**
+**根据项目类型生成架构图：**
 
+**后端 API 项目：**
 ```json
 {
   "nodes": [
-    {
-      "id": "node-1",
-      "type": "text",
-      "x": 0,
-      "y": 0,
-      "width": 250,
-      "height": 60,
-      "text": "节点名称",
-      "color": "1"
-    }
+    {"id": "client", "type": "text", "x": 0, "y": 60, "width": 180, "height": 60, "text": "客户端\nWeb/App/Mobile", "color": "4"},
+    {"id": "api", "type": "text", "x": 240, "y": 60, "width": 180, "height": 60, "text": "API 服务\n{框架}", "color": "5"},
+    {"id": "service", "type": "text", "x": 480, "y": 20, "width": 160, "height": 50, "text": "业务层\nService", "color": "6"},
+    {"id": "repo", "type": "text", "x": 480, "y": 100, "width": 160, "height": 50, "text": "数据层\nRepository", "color": "6"},
+    {"id": "db", "type": "text", "x": 720, "y": 60, "width": 180, "height": 60, "text": "数据库\n{数据库类型}", "color": "1"}
   ],
   "edges": [
-    {
-      "id": "edge-1",
-      "fromNode": "node-1",
-      "toNode": "node-2",
-      "fromSide": "right",
-      "toSide": "left"
-    }
+    {"id": "e1", "fromNode": "client", "toNode": "api", "fromSide": "right", "toSide": "left"},
+    {"id": "e2", "fromNode": "api", "toNode": "service", "fromSide": "right", "toSide": "left"},
+    {"id": "e3", "fromNode": "api", "toNode": "repo", "fromSide": "right", "toSide": "left"},
+    {"id": "e4", "fromNode": "service", "toNode": "db", "fromSide": "right", "toSide": "left"},
+    {"id": "e5", "fromNode": "repo", "toNode": "db", "fromSide": "right", "toSide": "left"}
   ]
 }
 ```
 
-**节点类型：**
-- `type: "text"` — 文本节点，必须有 `text` 属性
-- `type: "file"` — 文件节点，必须有 `file` 属性（相对路径）
-- `type: "group"` — 分组节点，必须有 `label` 和 `size` 属性
-
-**节点属性：**
-- `id` — 唯一标识，格式：`node-1`、`node-2`
-- `x`, `y` — 坐标位置（水平布局，间距 300）
-- `width`, `height` — 尺寸（文本节点：250×60，分组节点：400×300）
-- `color` — 颜色：`"1"`（红）、`"2"`（橙）、`"3"`（黄）、`"4"`（绿）、`"5"`（蓝）、`"6"`（紫）
-
-**连线属性：**
-- `id` — 唯一标识，格式：`edge-1`、`edge-2`
-- `fromNode`, `toNode` — 源/目标节点ID
-- `fromSide`, `toSide` — 方向：`"left"`、`"right"`、`"top"`、`"bottom"`
-
-**架构图示例：**
-
-对于一个 API 后端项目，创建如下架构：
-
+**前后端分离项目：**
 ```json
 {
   "nodes": [
-    {"id": "client", "type": "text", "x": 0, "y": 120, "width": 200, "height": 60, "text": "客户端\nWeb/App", "color": "4"},
-    {"id": "api", "type": "text", "x": 300, "y": 120, "width": 200, "height": 60, "text": "API 服务\nGo + gRPC", "color": "5"},
-    {"id": "db", "type": "text", "x": 600, "y": 120, "width": 200, "height": 60, "text": "数据库\nMongoDB", "color": "6"}
+    {"id": "web", "type": "text", "x": 0, "y": 0, "width": 160, "height": 50, "text": "前端\nReact/Vue", "color": "4"},
+    {"id": "api", "type": "text", "x": 0, "y": 120, "width": 160, "height": 50, "text": "API\n{框架}", "color": "5"},
+    {"id": "gateway", "type": "text", "x": 240, "y": 60, "width": 160, "height": 50, "text": "网关\nNginx/Gateway", "color": "3"},
+    {"id": "db", "type": "text", "x": 480, "y": 60, "width": 160, "height": 50, "text": "数据库\n{类型}", "color": "1"},
+    {"id": "cache", "type": "text", "x": 480, "y": 140, "width": 160, "height": 50, "text": "缓存\nRedis", "color": "2"}
   ],
   "edges": [
-    {"id": "edge-1", "fromNode": "client", "toNode": "api", "fromSide": "right", "toSide": "left"},
-    {"id": "edge-2", "fromNode": "api", "toNode": "db", "fromSide": "right", "toSide": "left"}
+    {"id": "e1", "fromNode": "web", "toNode": "gateway", "fromSide": "right", "toSide": "left"},
+    {"id": "e2", "fromNode": "api", "toNode": "gateway", "fromSide": "right", "toSide": "left"},
+    {"id": "e3", "fromNode": "gateway", "toNode": "db", "fromSide": "right", "toSide": "left"},
+    {"id": "e4", "fromNode": "gateway", "toNode": "cache", "fromSide": "right", "toSide": "left"}
   ]
 }
 ```
 
-**注意事项：**
-- 水平布局：x 坐标从 0 开始，每个节点间隔 300
-- 垂直居中：y 坐标约 120
-- 节点文字使用 `\n` 换行，格式：`名称\n技术栈`
-- 写入文件时使用 `JSON.stringify(canvasData, null, 0)` 压缩格式
+**微服务项目：**
+```json
+{
+  "nodes": [
+    {"id": "gateway", "type": "text", "x": 240, "y": 0, "width": 180, "height": 50, "text": "API Gateway", "color": "3"},
+    {"id": "user", "type": "text", "x": 0, "y": 120, "width": 140, "height": 50, "text": "用户服务\nUser Service", "color": "5"},
+    {"id": "order", "type": "text", "x": 180, "y": 120, "width": 140, "height": 50, "text": "订单服务\nOrder Service", "color": "5"},
+    {"id": "product", "type": "text", "x": 360, "y": 120, "width": 140, "height": 50, "text": "商品服务\nProduct Service", "color": "5"},
+    {"id": "payment", "type": "text", "x": 540, "y": 120, "width": 140, "height": 50, "text": "支付服务\nPayment Service", "color": "5"},
+    {"id": "db", "type": "text", "x": 240, "y": 220, "width": 200, "height": 50, "text": "数据库集群", "color": "1"},
+    {"id": "mq", "type": "text", "x": 480, "y": 220, "width": 160, "height": 50, "text": "消息队列\nKafka/RabbitMQ", "color": "2"}
+  ],
+  "edges": [
+    {"id": "e1", "fromNode": "gateway", "toNode": "user", "fromSide": "bottom", "toSide": "top"},
+    {"id": "e2", "fromNode": "gateway", "toNode": "order", "fromSide": "bottom", "toSide": "top"},
+    {"id": "e3", "fromNode": "gateway", "toNode": "product", "fromSide": "bottom", "toSide": "top"},
+    {"id": "e4", "fromNode": "gateway", "toNode": "payment", "fromSide": "bottom", "toSide": "top"},
+    {"id": "e5", "fromNode": "order", "toNode": "db", "fromSide": "bottom", "toSide": "top"},
+    {"id": "e6", "fromNode": "payment", "toNode": "mq", "fromSide": "bottom", "toSide": "top"}
+  ]
+}
+```
 
 ---
 
-### 阶段 7：报告结果
+### 阶段 6：报告结果
 
 ```
 ## 同步完成
 
 **项目：** {名称}
 **文件：** 项目/{项目名}.md
+**画布：** 画布/{项目名}架构.canvas
 
-**生成的文档：**
-- 技术栈：{语言}、{框架}
+**分析结果：**
+- API 接口：{N} 个
+- 数据模型：{N} 个
 - 关键文件：{N} 个
 
 查看反向链接：在项目文档底部可见相关日记
@@ -242,49 +291,9 @@ aliases:
 
 ---
 
-## 项目文档完整模板
-
-```markdown
----
-title: {项目名}
-date: YYYY-MM-DD
-tags:
-  - project
-aliases:
-  - {别名1}
----
-
-# {项目名}
-
-一句话描述。
-
-**Location:** `/{绝对路径}`
-
-> [!abstract] 技术栈
-> - {语言} {版本}
-> - {框架}
-> - {数据库}
-
-> [!info] 关键文件
-> | 文件 | 作用 |
-> |------|------|
-> | `入口文件` | 说明 |
-> | `模块目录` | 说明 |
-
-> [!example] 架构
-> 画布：![[{项目名}架构.canvas]]
-
-> [!note]+ 笔记
-> - 重要决策、踩坑记录
-```
-
----
-
 ## 设计理念
 
-- 项目文档使用 callouts 分区，视觉清晰
-- aliases 支持多种名称搜索（如"后端"、"API"）
-- embed 画布 `![[canvas]]` 在文档内直接展示架构
-- 笔记 callout 默认展开 `+`，方便记录
-- **不生成"开发记录"部分** — 由日记的双向链接自动展示
-- 项目文档保持简洁，聚焦项目本身
+- 深度分析代码，自动提取完整信息
+- 文档结构清晰：概述 → 结构 → 接口 → 数据 → 开发
+- 架构图根据项目类型自动适配
+- 开发者可直接作为项目文档使用
