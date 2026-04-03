@@ -16,5 +16,9 @@ dist/
 *.log
 npm-debug.log*
 
+# npm pack output
+*.tgz
+package/
+
 # Design docs (private)
 docs/

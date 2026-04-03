@@ -10,7 +10,103 @@ import ora from 'ora';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
+// ASCII动画帧
+const ANIMATION_FRAMES = [
+  // Frame 1: 空白
+  [
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+  ],
+  // Frame 2: 中心块出现 (dim)
+  [
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '    ░░  ',
+    '    ░░  ',
+    '    ░░  ',
+    '        ',
+    '        ',
+  ],
+  // Frame 3: 中心块变实
+  [
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '        ',
+    '    ██  ',
+    '    ██  ',
+    '    ██  ',
+    '        ',
+    '        ',
+  ],
+  // Frame 4: 上下点出现
+  [
+    '        ',
+    '        ',
+    '        ',
+    '    ░░  ',
+    '        ',
+    '    ██  ',
+    '    ██  ',
+    '    ██  ',
+    '        ',
+    '    ░░  ',
+  ],
+  // Frame 5: 内环形成
+  [
+    '        ',
+    '        ',
+    '        ',
+    '    ██  ',
+    '  ░░  ░░',
+    '    ██  ',
+    '    ██  ',
+    '    ██  ',
+    '  ░░  ░░',
+    '    ██  ',
+  ],
+  // Frame 6: 外环出现
+  [
+    '        ',
+    '        ',
+    '        ',
+    '    ██  ',
+    '  ██  ██',
+    ' ░░██  ░░',
+    ' ░░██  ░░',
+    ' ░░██  ░░',
+    '  ██  ██',
+    '    ██  ',
+  ],
+  // Frame 7: 完整logo
+  [
+    '        ',
+    '        ',
+    '        ',
+    '    ██  ',
+    '  ██  ██',
+    ' ████  ██',
+    ' ████  ██',
+    ' ████  ██',
+    '  ██  ██',
+    '    ██  ',
+  ],
+];
+
+const FRAME_INTERVAL = 120;
+const ART_COLUMN_WIDTH = 20;
 
 // 简单的彩色输出
 const colors = {
@@ -20,8 +116,12 @@ const colors = {
   red: (text) => `\x1b[31m${text}\x1b[0m`,
   cyan: (text) => `\x1b[36m${text}\x1b[0m`,
   yellow: (text) => `\x1b[33m${text}\x1b[0m`,
-  bold: (text) => `\x1b[1m${text}\x1b[0m`
+  bold: (text) => `\x1b[1m${text}\x1b[0m`,
+  white: (text) => `\x1b[37m${text}\x1b[0m`,
+  dim: (text) => `\x1b[2m${text}\x1b[0m`
 };
+
+const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
 
 // 工具配置
 const TOOLS = {
@@ -213,26 +313,107 @@ function detectInstalledTools(vaultPath) {
   return installed;
 }
 
-// 显示欢迎信息
-async function showWelcome() {
-  const lines = [
-    '                        欢迎使用 worklog',
-    '                        极简的个人工作管理知识库',
+// 获取欢迎文本（右侧列）
+function getWelcomeText() {
+  return [
+    colors.white(colors.bold('欢迎使用 worklog')),
+    colors.dim('极简的个人工作管理知识库'),
     '',
-    '        ' + colors.cyan('████') + '            此设置将配置:',
-    '                          • AI 工具的技能文件',
-    '        ' + colors.cyan('████') + '              • /worklog:* 斜杠命令',
-    '        ' + colors.cyan('████') + '',
-    '        ' + colors.cyan('████') + '            设置后快速开始:',
-    '                          • /worklog:log      写日报',
-    '        ' + colors.cyan('░░░░') + '              • /worklog:note     快速笔记',
-    '                          • /worklog:project  同步项目',
-    ''
+    colors.white('此设置将配置:'),
+    colors.dim('  • AI 工具的技能文件'),
+    colors.dim('  • /worklog:* 斜杠命令'),
+    '',
+    colors.white('设置后快速开始:'),
+    `  ${colors.cyan('/worklog:log')}         ${colors.dim('写日报')}`,
+    `  ${colors.cyan('/worklog:note xxx')}    ${colors.dim('快速笔记')}`,
+    `  ${colors.cyan('/worklog:project')}     ${colors.dim('同步项目')}`,
+    `  ${colors.cyan('/worklog:summarize')}   ${colors.dim('整理笔记')}`,
+    '',
+    colors.cyan('按 Enter 选择工具...'),
   ];
+}
 
-  console.clear();
-  console.log(lines.join('\n'));
-  await new Promise(resolve => setTimeout(resolve, 800));
+// 渲染单帧（左右并排布局）
+function renderFrame(artLines, textLines) {
+  const maxLines = Math.max(artLines.length, textLines.length);
+  const lines = [];
+
+  for (let i = 0; i < maxLines; i++) {
+    const artLine = artLines[i] || '';
+    const textLine = textLines[i] || '';
+    const paddedArt = artLine.padEnd(ART_COLUMN_WIDTH);
+    const coloredArt = colors.cyan(paddedArt);
+    lines.push(`\x1b[2K${coloredArt}${textLine}`);
+  }
+
+  return lines.join('\n');
+}
+
+// 等待Enter键
+function waitForEnter() {
+  return new Promise((resolve) => {
+    const { stdin } = process;
+    if (!stdin.isTTY) {
+      resolve();
+      return;
+    }
+
+    const wasRaw = stdin.isRaw;
+    stdin.setRawMode(true);
+    stdin.resume();
+
+    const onData = (data) => {
+      const char = data.toString();
+      if (char === '\r' || char === '\n' || char === '\u0003') {
+        stdin.removeListener('data', onData);
+        stdin.setRawMode(wasRaw);
+        stdin.pause();
+
+        if (char === '\u0003') {
+          process.stdout.write('\n');
+          process.exit(0);
+        }
+        resolve();
+      }
+    };
+
+    stdin.on('data', onData);
+  });
+}
+
+// 显示欢迎信息（动画）
+async function showWelcome() {
+  const textLines = getWelcomeText();
+  const frameHeight = Math.max(ANIMATION_FRAMES[0].length, textLines.length) + 1;
+  const totalHeight = frameHeight + 1;
+
+  process.stdout.write('\n');
+
+  let frameIndex = 0;
+  let isFirstRender = true;
+
+  const interval = setInterval(() => {
+    const frame = ANIMATION_FRAMES[frameIndex];
+
+    if (!isFirstRender) {
+      process.stdout.write(`\x1b[${frameHeight}A`);
+    }
+    isFirstRender = false;
+
+    process.stdout.write(renderFrame(frame, textLines) + '\n\n');
+    frameIndex = (frameIndex + 1) % ANIMATION_FRAMES.length;
+  }, FRAME_INTERVAL);
+
+  await waitForEnter();
+
+  clearInterval(interval);
+
+  // 清除欢迎屏幕
+  process.stdout.write(`\x1b[${totalHeight}A`);
+  for (let i = 0; i < totalHeight; i++) {
+    process.stdout.write('\x1b[2K\n');
+  }
+  process.stdout.write(`\x1b[${totalHeight}A`);
 }
 
 // 显示完成信息
