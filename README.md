@@ -83,7 +83,7 @@ worklog update
 如果你不想全局安装 npm 包：
 
 ```bash
-git clone https://github.com/你的用户名/worklog.git
+git clone https://github.com/ltppp/worklog.git
 cd worklog
 npm link
 ```
