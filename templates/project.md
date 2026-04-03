@@ -37,22 +37,40 @@ VAULT_PATH = "{{VAULT_PATH}}"
 
 ### 阶段 3：操作菜单
 
-**已存在项目文件：**
+**使用 AskUserQuestion 工具呈现选项，让用户点击选择：**
 
-| 选项 | 说明 |
-|------|------|
-| 更新描述与技术栈 | 刷新项目信息 |
-| 添加开发记录 | 追加今日记录 |
-| 更新关键文件表格 | 刷新文件列表 |
-| 创建架构画布 | 生成 `.canvas` |
-| 完整同步 | 执行全部 |
+**已存在项目文件时：**
+```json
+{
+  "questions": [{
+    "header": "操作",
+    "multiSelect": false,
+    "options": [
+      {"label": "更新描述与技术栈", "description": "刷新项目信息"},
+      {"label": "添加开发记录", "description": "追加今日记录"},
+      {"label": "更新关键文件表格", "description": "刷新文件列表"},
+      {"label": "创建架构画布", "description": "生成 .canvas 文件"},
+      {"label": "完整同步", "description": "执行全部操作"}
+    ],
+    "question": "请选择要执行的操作？"
+  }]
+}
+```
 
-**不存在：**
-
-| 选项 | 说明 |
-|------|------|
-| 创建项目文档 | 创建 `{项目名}.md` |
-| 创建文档 + 画布 | 同时创建两个文件 |
+**不存在项目文件时：**
+```json
+{
+  "questions": [{
+    "header": "操作",
+    "multiSelect": false,
+    "options": [
+      {"label": "创建项目文档", "description": "生成 {项目名}.md"},
+      {"label": "创建文档 + 架构画布", "description": "同时创建 .md 和 .canvas"}
+    ],
+    "question": "项目文件夹为空，请选择操作？"
+  }]
+}
+```
 
 ---
 
