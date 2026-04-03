@@ -8,21 +8,37 @@
 
 ## 安装
 
+### 方式一：作为 Skill Package 安装（推荐）
+
 ```bash
 git clone https://github.com/你的用户名/worklog.git
+cd worklog
 ```
 
-1. 用 Obsidian 打开 `worklog` 文件夹作为知识库
-2. 复制命令目录到 Claude 配置：
+然后将此目录配置为 Claude Code 的 skill：
+
+1. 在 `~/.claude/settings.json` 中添加：
+   ```json
+   {
+     "env": {
+       "WORKLOG_VAULT_PATH": "/Users/你的用户名/projects/worklog"
+     }
+   }
+   ```
+
+2. 将 skills 目录链接到 Claude 命令目录：
    ```bash
    mkdir -p ~/.claude/commands
-   cp -r worklog ~/.claude/commands/
+   ln -s $(pwd)/skills/* ~/.claude/commands/
    ```
-   （源码中的 `worklog/` 目录包含四个命令文件）
-3. 编辑每个命令文件，修改 `VAULT_PATH` 为你的知识库绝对路径：
-   ```
-   VAULT_PATH = "/Users/你的用户名/projects/worklog"
-   ```
+
+### 方式二：手动复制
+
+```bash
+cp -r skills/* ~/.claude/commands/
+```
+
+然后编辑每个 `SKILL.md` 文件，修改 `VAULT_PATH`。
 
 ## 结构
 
