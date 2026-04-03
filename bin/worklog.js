@@ -3,9 +3,9 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const readline = require('readline');
 
 const TEMPLATES_DIR = path.join(__dirname, '..', 'templates');
-const CLAUDE_COMMANDS_DIR = path.join(os.homedir(), '.claude', 'commands', 'worklog');
 
 // 简单的彩色输出
 const colors = {
@@ -13,14 +13,74 @@ const colors = {
   green: (text) => `\x1b[32m${text}\x1b[0m`,
   gray: (text) => `\x1b[90m${text}\x1b[0m`,
   red: (text) => `\x1b[31m${text}\x1b[0m`,
-  cyan: (text) => `\x1b[36m${text}\x1b[0m`
+  cyan: (text) => `\x1b[36m${text}\x1b[0m`,
+  yellow: (text) => `\x1b[33m${text}\x1b[0m`
 };
+
+// 工具配置
+const TOOLS = {
+  claude: {
+    name: 'Claude Code',
+    getSkillsDir: (vaultPath) => path.join(os.homedir(), '.claude', 'commands', 'worklog'),
+    getFilename: (id) => `${id}.md`,
+    formatFrontmatter: (id, desc) => `---
+name: worklog:${id}
+description: "${desc}"
+---`
+  },
+  codex: {
+    name: 'Codex',
+    getSkillsDir: (vaultPath) => {
+      const codexHome = process.env.CODEX_HOME?.trim() || path.join(os.homedir(), '.codex');
+      return path.join(codexHome, 'prompts');
+    },
+    getFilename: (id) => `worklog-${id}.md`,
+    formatFrontmatter: (id, desc) => `---
+description: ${desc}
+argument-hint: command arguments
+---`
+  },
+  cursor: {
+    name: 'Cursor',
+    getSkillsDir: (vaultPath) => path.join(vaultPath, '.cursor', 'commands'),
+    getFilename: (id) => `worklog-${id}.md`,
+    formatFrontmatter: (id, desc) => `---
+name: /worklog-${id}
+id: worklog-${id}
+category: Worklog
+description: "${desc}"
+---`
+  }
+};
+
+// 技能列表
+const SKILLS = [
+  { id: 'log', desc: '写日报' },
+  { id: 'project', desc: '同步项目文档' },
+  { id: 'note', desc: '快速笔记' },
+  { id: 'summarize', desc: '整理本周笔记到资源' }
+];
 
 // 解析命令行参数
 const args = process.argv.slice(2);
 const command = args[0];
 const targetPath = args[1];
 const force = args.includes('-f') || args.includes('--force');
+
+// 创建 readline 接口
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+// 提问函数
+function question(prompt) {
+  return new Promise((resolve) => {
+    rl.question(prompt, (answer) => {
+      resolve(answer.trim());
+    });
+  });
+}
 
 // 帮助信息
 function showHelp() {
@@ -38,6 +98,9 @@ ${colors.blue('示例:')}
   worklog init .         在当前目录初始化
   worklog update         更新技能
 
+${colors.blue('支持的 AI 工具:')}
+  Claude Code, Codex, Cursor
+
 ${colors.blue('命令:')}
   /worklog:log           写日报
   /worklog:note xxx      快速笔记
@@ -52,25 +115,57 @@ function showVersion() {
   console.log(pkg.version);
 }
 
-// 安装技能
-function installSkills(vaultPath) {
-  // 确保目录存在
-  if (!fs.existsSync(CLAUDE_COMMANDS_DIR)) {
-    fs.mkdirSync(CLAUDE_COMMANDS_DIR, { recursive: true });
+// 交互式选择工具
+async function selectTools() {
+  const toolIds = ['claude', 'codex', 'cursor'];
+
+  console.log(colors.blue('\n🤖 选择要安装的 AI 工具\n'));
+  console.log(colors.gray('输入 y 确认安装，n 跳过\n'));
+
+  const selected = [];
+
+  for (const toolId of toolIds) {
+    const tool = TOOLS[toolId];
+    const answer = await question(`  安装 ${tool.name}? (y/n) [y]: `);
+    if (answer === '' || answer.toLowerCase() === 'y') {
+      selected.push(toolId);
+    }
   }
 
-  const skills = ['log', 'project', 'note', 'summarize'];
+  // 默认至少选一个
+  if (selected.length === 0) {
+    console.log(colors.yellow('\n  未选择任何工具，默认安装 Claude Code'));
+    selected.push('claude');
+  }
 
-  for (const skill of skills) {
-    const templatePath = path.join(TEMPLATES_DIR, `${skill}.md`);
-    const targetPath = path.join(CLAUDE_COMMANDS_DIR, `${skill}.md`);
+  return selected;
+}
 
-    let content = fs.readFileSync(templatePath, 'utf-8');
-    // 替换 VAULT_PATH 占位符
-    content = content.replace(/{{VAULT_PATH}}/g, vaultPath);
+// 安装技能到指定工具
+function installSkillsToTools(vaultPath, selectedTools) {
+  for (const toolId of selectedTools) {
+    const tool = TOOLS[toolId];
+    const skillsDir = tool.getSkillsDir(vaultPath);
 
-    fs.writeFileSync(targetPath, content);
-    console.log(colors.green(`  ✓ worklog:${skill}`));
+    // 确保目录存在
+    if (!fs.existsSync(skillsDir)) {
+      fs.mkdirSync(skillsDir, { recursive: true });
+    }
+
+    console.log(colors.blue(`\n📦 安装技能到 ${tool.name}\n`));
+
+    for (const skill of SKILLS) {
+      const templatePath = path.join(TEMPLATES_DIR, `${skill.id}.md`);
+      let body = fs.readFileSync(templatePath, 'utf-8');
+      body = body.replace(/{{VAULT_PATH}}/g, vaultPath);
+
+      const frontmatter = tool.formatFrontmatter(skill.id, skill.desc);
+      const filename = tool.getFilename(skill.id);
+      const targetPath = path.join(skillsDir, filename);
+
+      fs.writeFileSync(targetPath, `${frontmatter}\n\n${body}`);
+      console.log(colors.green(`  ✓ worklog:${skill.id}`));
+    }
   }
 }
 
@@ -88,21 +183,43 @@ function findVaultPath() {
     currentDir = path.dirname(currentDir);
   }
 
-  // 2. 从已安装的技能文件中读取 VAULT_PATH
-  const logPath = path.join(CLAUDE_COMMANDS_DIR, 'log.md');
-  if (fs.existsSync(logPath)) {
-    const content = fs.readFileSync(logPath, 'utf-8');
-    const match = content.match(/VAULT_PATH\s*=\s*["']([^"']+)["']/);
-    if (match) {
-      return match[1];
+  // 2. 从已安装的技能文件中读取 VAULT_PATH（检查所有工具）
+  for (const toolId of ['claude', 'codex', 'cursor']) {
+    const tool = TOOLS[toolId];
+    const skillsDir = tool.getSkillsDir('');
+    const logPath = path.join(skillsDir, tool.getFilename('log'));
+
+    if (fs.existsSync(logPath)) {
+      const content = fs.readFileSync(logPath, 'utf-8');
+      const match = content.match(/VAULT_PATH\s*=\s*["']([^"']+)["']/);
+      if (match) {
+        return match[1];
+      }
     }
   }
 
   return null;
 }
 
+// 检测已安装的工具
+function detectInstalledTools(vaultPath) {
+  const installed = [];
+
+  for (const toolId of ['claude', 'codex', 'cursor']) {
+    const tool = TOOLS[toolId];
+    const skillsDir = tool.getSkillsDir(vaultPath);
+    const logPath = path.join(skillsDir, tool.getFilename('log'));
+
+    if (fs.existsSync(logPath)) {
+      installed.push(toolId);
+    }
+  }
+
+  return installed;
+}
+
 // init 命令
-function init(vaultPath) {
+async function init(vaultPath) {
   console.log(colors.blue('\n📁 初始化 worklog 知识库\n'));
   console.log(colors.gray(`目标路径: ${vaultPath}\n`));
 
@@ -130,9 +247,9 @@ function init(vaultPath) {
     console.log(colors.green(`  ✓ CLAUDE.md`));
   }
 
-  // 3. 安装技能
-  console.log(colors.blue('\n📦 安装技能到 Claude Code\n'));
-  installSkills(vaultPath);
+  // 3. 选择工具并安装技能
+  const selectedTools = await selectTools();
+  installSkillsToTools(vaultPath, selectedTools);
 
   // 4. 创建今日日记
   const today = new Date().toISOString().split('T')[0];
@@ -150,7 +267,7 @@ function init(vaultPath) {
 ## 明天继续
 `;
     fs.writeFileSync(diaryPath, diaryTemplate);
-    console.log(colors.green(`  ✓ 日记/${today}.md`));
+    console.log(colors.green(`\n  ✓ 日记/${today}.md`));
   }
 
   // 5. 完成
@@ -161,6 +278,8 @@ function init(vaultPath) {
   console.log(colors.cyan('  /worklog:project     同步项目'));
   console.log(colors.cyan('  /worklog:summarize   整理笔记'));
   console.log();
+
+  rl.close();
 }
 
 // update 命令
@@ -174,20 +293,35 @@ function update() {
     process.exit(1);
   }
 
-  installSkills(vaultPath);
+  const installedTools = detectInstalledTools(vaultPath);
+  if (installedTools.length === 0) {
+    console.log(colors.yellow('未检测到已安装的工具，将安装到 Claude Code'));
+    installedTools.push('claude');
+  }
+
+  console.log(colors.gray(`检测到已安装的工具: ${installedTools.map(t => TOOLS[t].name).join(', ')}\n`));
+
+  installSkillsToTools(vaultPath, installedTools);
   console.log(colors.green('\n✨ 更新完成！\n'));
 }
 
 // 主逻辑
 if (args.includes('--help') || args.includes('-h')) {
   showHelp();
-} else if (args.includes('--version') || args.includes('-v')) {
+  process.exit(0);
+}
+
+if (args.includes('--version') || args.includes('-v')) {
   showVersion();
-} else if (command === 'init') {
+  process.exit(0);
+}
+
+if (command === 'init') {
   const vaultPath = targetPath ? path.resolve(targetPath) : process.cwd();
   init(vaultPath);
 } else if (command === 'update') {
   update();
 } else {
   showHelp();
+  process.exit(0);
 }

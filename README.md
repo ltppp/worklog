@@ -6,14 +6,14 @@
 [![npm downloads](https://img.shields.io/npm/dm/@tianpeng1995/worklog-cli.svg)](https://www.npmjs.com/package/@tianpeng1995/worklog-cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-极简的个人工作管理知识库 CLI，与 Claude Code 深度集成。
+极简的个人工作管理知识库 CLI，支持多种 AI 编码工具。
 
 **只需记住一件事：打开今天的文件，写。**
 
 ## ✨ 特性
 
 - **极简设计** — 没有复杂的标签系统，没有 Johnny Decimal 编号，只有四个目录
-- **Claude Code 集成** — 自动安装技能，用自然语言写日报、整理笔记
+- **多工具支持** — 支持 Claude Code、Codex、Cursor，初始化时可选择
 - **自动 Git 记录** — `/worklog:log` 自动拉取今日提交，告别手动写日报
 - **渐进式归档** — 日记是临时池，周末整理到资源，形成个人知识库
 - **Obsidian 友好** — 兼容 Obsidian Markdown，支持 Canvas 架构图
@@ -37,7 +37,8 @@ worklog init
 
 初始化会自动：
 - 创建目录结构（日记/、项目/、资源/、画布/）
-- 安装技能到 Claude Code
+- 交互选择要安装的 AI 工具（Claude Code、Codex、Cursor）
+- 安装对应工具的技能文件
 - 创建今日日记
 
 ## 📁 目录结构
@@ -104,13 +105,16 @@ npm link
 
 可以。目录结构兼容 Obsidian，但你可以用任何 Markdown 编辑器（VS Code、Typora 等）。
 
+### 支持哪些 AI 工具？
+
+目前支持：
+- **Claude Code** — 技能安装到 `~/.claude/commands/worklog/`
+- **Codex** — 技能安装到 `~/.codex/prompts/`
+- **Cursor** — 技能安装到 `<知识库>/.cursor/commands/`
+
 ### 日记会一直堆积吗？
 
 不会。周末运行 `/worklog:summarize`，将有价值的笔记整理到资源文件夹，日记只保留工作记录。
-
-### 必须用 Claude Code 吗？
-
-不必须。CLI 工具独立可用，但 Claude Code 技能让写日报、整理笔记更高效。
 
 ## 📄 许可证
 
