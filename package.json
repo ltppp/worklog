@@ -1,6 +1,6 @@
 {
   "name": "@tianpeng1995/worklog-cli",
-  "version": "1.5.0",
+  "version": "2.0.0",
   "description": "极简的个人工作管理知识库 CLI",
   "keywords": [
     "worklog",
