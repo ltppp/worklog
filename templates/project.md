@@ -206,69 +206,436 @@ aliases:
 
 **创建文件：** `VAULT_PATH/画布/{项目名}架构.canvas`
 
-**根据项目类型生成架构图：**
+**布局规范（参考 Obsidian Canvas 最佳实践）：**
 
-**后端 API 项目：**
+| 元素 | 尺寸 | 位置 | 颜色 |
+|------|------|------|------|
+| 标题节点 | 400x100 | 居中顶部 | `"0"` 灰色 |
+| 层标签 | 180x60 | x: -40 | `"6"` 紫色 |
+| 内容节点 | 340x120 | x: 200+ | 根据类型 |
+| 层间距 | - | 200px | - |
+
+**颜色语义：**
+- `"1"` 红色 — 入口、核心系统
+- `"5"` 青色 — API层、网络服务
+- `"3"` 黄色 — 数据层、数据库
+- `"4"` 绿色 — UI、前端
+- `"2"` 橙色 — 缓存、消息队列
+- `"6"` 紫色 — 层标签
+
+**垂直流向，从上到下：**
+
+---
+
+**后端 API 项目示例：**
+
 ```json
 {
   "nodes": [
-    {"id": "client", "type": "text", "x": 0, "y": 60, "width": 180, "height": 60, "text": "客户端\nWeb/App/Mobile", "color": "4"},
-    {"id": "api", "type": "text", "x": 240, "y": 60, "width": 180, "height": 60, "text": "API 服务\n{框架}", "color": "5"},
-    {"id": "service", "type": "text", "x": 480, "y": 20, "width": 160, "height": 50, "text": "业务层\nService", "color": "6"},
-    {"id": "repo", "type": "text", "x": 480, "y": 100, "width": 160, "height": 50, "text": "数据层\nRepository", "color": "6"},
-    {"id": "db", "type": "text", "x": 720, "y": 60, "width": 180, "height": 60, "text": "数据库\n{数据库类型}", "color": "1"}
+    {
+      "id": "title",
+      "type": "text",
+      "text": "# {项目名} Architecture",
+      "x": 100,
+      "y": -500,
+      "width": 400,
+      "height": 80,
+      "color": "0"
+    },
+    {
+      "id": "label_entry",
+      "type": "text",
+      "text": "**入口层**",
+      "x": -40,
+      "y": -350,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "client",
+      "type": "text",
+      "text": "## 客户端\n\nWeb / App / Mobile\nHTTP 请求",
+      "x": 200,
+      "y": -360,
+      "width": 340,
+      "height": 120,
+      "color": "4"
+    },
+    {
+      "id": "label_api",
+      "type": "text",
+      "text": "**API 层**",
+      "x": -40,
+      "y": -150,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "api",
+      "type": "text",
+      "text": "## API 服务\n\n{框架}\n路由 / Handler / 中间件",
+      "x": 200,
+      "y": -160,
+      "width": 340,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "label_data",
+      "type": "text",
+      "text": "**数据层**",
+      "x": -40,
+      "y": 50,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "db",
+      "type": "text",
+      "text": "## 数据库\n\n{数据库类型}\n数据持久化",
+      "x": 200,
+      "y": 40,
+      "width": 340,
+      "height": 120,
+      "color": "3"
+    }
   ],
   "edges": [
-    {"id": "e1", "fromNode": "client", "toNode": "api", "fromSide": "right", "toSide": "left"},
-    {"id": "e2", "fromNode": "api", "toNode": "service", "fromSide": "right", "toSide": "left"},
-    {"id": "e3", "fromNode": "api", "toNode": "repo", "fromSide": "right", "toSide": "left"},
-    {"id": "e4", "fromNode": "service", "toNode": "db", "fromSide": "right", "toSide": "left"},
-    {"id": "e5", "fromNode": "repo", "toNode": "db", "fromSide": "right", "toSide": "left"}
+    {
+      "id": "e1",
+      "fromNode": "client",
+      "fromSide": "bottom",
+      "toNode": "api",
+      "toSide": "top"
+    },
+    {
+      "id": "e2",
+      "fromNode": "api",
+      "fromSide": "bottom",
+      "toNode": "db",
+      "toSide": "top"
+    }
   ]
 }
 ```
 
-**前后端分离项目：**
+---
+
+**前后端分离项目示例：**
+
 ```json
 {
   "nodes": [
-    {"id": "web", "type": "text", "x": 0, "y": 0, "width": 160, "height": 50, "text": "前端\nReact/Vue", "color": "4"},
-    {"id": "api", "type": "text", "x": 0, "y": 120, "width": 160, "height": 50, "text": "API\n{框架}", "color": "5"},
-    {"id": "gateway", "type": "text", "x": 240, "y": 60, "width": 160, "height": 50, "text": "网关\nNginx/Gateway", "color": "3"},
-    {"id": "db", "type": "text", "x": 480, "y": 60, "width": 160, "height": 50, "text": "数据库\n{类型}", "color": "1"},
-    {"id": "cache", "type": "text", "x": 480, "y": 140, "width": 160, "height": 50, "text": "缓存\nRedis", "color": "2"}
+    {
+      "id": "title",
+      "type": "text",
+      "text": "# {项目名} Architecture",
+      "x": 100,
+      "y": -600,
+      "width": 400,
+      "height": 80,
+      "color": "0"
+    },
+    {
+      "id": "label_frontend",
+      "type": "text",
+      "text": "**前端层**",
+      "x": -40,
+      "y": -450,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "frontend",
+      "type": "text",
+      "text": "## 前端应用\n\nReact / Vue\n组件 / 状态管理 / 路由",
+      "x": 200,
+      "y": -460,
+      "width": 340,
+      "height": 120,
+      "color": "4"
+    },
+    {
+      "id": "label_gateway",
+      "type": "text",
+      "text": "**网关层**",
+      "x": -40,
+      "y": -250,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "gateway",
+      "type": "text",
+      "text": "## API 网关\n\nNginx / Gateway\n负载均衡 / 反向代理",
+      "x": 200,
+      "y": -260,
+      "width": 340,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "label_backend",
+      "type": "text",
+      "text": "**后端层**",
+      "x": -40,
+      "y": -50,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "backend",
+      "type": "text",
+      "text": "## 后端服务\n\n{框架}\n业务逻辑 / API",
+      "x": 200,
+      "y": -60,
+      "width": 340,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "label_data",
+      "type": "text",
+      "text": "**数据层**",
+      "x": -40,
+      "y": 150,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "db",
+      "type": "text",
+      "text": "## 数据库\n\n{数据库类型}",
+      "x": 200,
+      "y": 140,
+      "width": 340,
+      "height": 120,
+      "color": "3"
+    },
+    {
+      "id": "cache",
+      "type": "text",
+      "text": "## 缓存\n\nRedis\n会话 / 热数据",
+      "x": 560,
+      "y": 140,
+      "width": 340,
+      "height": 120,
+      "color": "2"
+    }
   ],
   "edges": [
-    {"id": "e1", "fromNode": "web", "toNode": "gateway", "fromSide": "right", "toSide": "left"},
-    {"id": "e2", "fromNode": "api", "toNode": "gateway", "fromSide": "right", "toSide": "left"},
-    {"id": "e3", "fromNode": "gateway", "toNode": "db", "fromSide": "right", "toSide": "left"},
-    {"id": "e4", "fromNode": "gateway", "toNode": "cache", "fromSide": "right", "toSide": "left"}
+    {
+      "id": "e1",
+      "fromNode": "frontend",
+      "fromSide": "bottom",
+      "toNode": "gateway",
+      "toSide": "top"
+    },
+    {
+      "id": "e2",
+      "fromNode": "gateway",
+      "fromSide": "bottom",
+      "toNode": "backend",
+      "toSide": "top"
+    },
+    {
+      "id": "e3",
+      "fromNode": "backend",
+      "fromSide": "bottom",
+      "toNode": "db",
+      "toSide": "top"
+    },
+    {
+      "id": "e4",
+      "fromNode": "backend",
+      "fromSide": "bottom",
+      "toNode": "cache",
+      "toSide": "top"
+    }
   ]
 }
 ```
 
-**微服务项目：**
+---
+
+**微服务项目示例：**
+
 ```json
 {
   "nodes": [
-    {"id": "gateway", "type": "text", "x": 240, "y": 0, "width": 180, "height": 50, "text": "API Gateway", "color": "3"},
-    {"id": "user", "type": "text", "x": 0, "y": 120, "width": 140, "height": 50, "text": "用户服务\nUser Service", "color": "5"},
-    {"id": "order", "type": "text", "x": 180, "y": 120, "width": 140, "height": 50, "text": "订单服务\nOrder Service", "color": "5"},
-    {"id": "product", "type": "text", "x": 360, "y": 120, "width": 140, "height": 50, "text": "商品服务\nProduct Service", "color": "5"},
-    {"id": "payment", "type": "text", "x": 540, "y": 120, "width": 140, "height": 50, "text": "支付服务\nPayment Service", "color": "5"},
-    {"id": "db", "type": "text", "x": 240, "y": 220, "width": 200, "height": 50, "text": "数据库集群", "color": "1"},
-    {"id": "mq", "type": "text", "x": 480, "y": 220, "width": 160, "height": 50, "text": "消息队列\nKafka/RabbitMQ", "color": "2"}
+    {
+      "id": "title",
+      "type": "text",
+      "text": "# {项目名} Architecture\n微服务架构",
+      "x": 200,
+      "y": -700,
+      "width": 400,
+      "height": 100,
+      "color": "0"
+    },
+    {
+      "id": "label_gateway",
+      "type": "text",
+      "text": "**网关层**",
+      "x": -40,
+      "y": -550,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "gateway",
+      "type": "text",
+      "text": "## API Gateway\n\nKong / Nginx\n路由 / 限流 / 认证",
+      "x": 200,
+      "y": -560,
+      "width": 340,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "label_services",
+      "type": "text",
+      "text": "**服务层**",
+      "x": -40,
+      "y": -350,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "user_svc",
+      "type": "text",
+      "text": "## 用户服务\n\nUser Service\n认证 / 用户管理",
+      "x": 200,
+      "y": -360,
+      "width": 340,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "order_svc",
+      "type": "text",
+      "text": "## 订单服务\n\nOrder Service\n订单处理",
+      "x": 560,
+      "y": -360,
+      "width": 340,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "product_svc",
+      "type": "text",
+      "text": "## 商品服务\n\nProduct Service\n商品管理",
+      "x": 920,
+      "y": -360,
+      "width": 340,
+      "height": 120,
+      "color": "5"
+    },
+    {
+      "id": "label_infra",
+      "type": "text",
+      "text": "**基础设施**",
+      "x": -40,
+      "y": -150,
+      "width": 180,
+      "height": 60,
+      "color": "6"
+    },
+    {
+      "id": "db",
+      "type": "text",
+      "text": "## 数据库集群\n\nPostgreSQL / MySQL\n主从复制",
+      "x": 200,
+      "y": -160,
+      "width": 340,
+      "height": 120,
+      "color": "3"
+    },
+    {
+      "id": "mq",
+      "type": "text",
+      "text": "## 消息队列\n\nKafka / RabbitMQ\n异步通信",
+      "x": 560,
+      "y": -160,
+      "width": 340,
+      "height": 120,
+      "color": "2"
+    },
+    {
+      "id": "cache",
+      "type": "text",
+      "text": "## 缓存集群\n\nRedis Cluster\n分布式缓存",
+      "x": 920,
+      "y": -160,
+      "width": 340,
+      "height": 120,
+      "color": "2"
+    }
   ],
   "edges": [
-    {"id": "e1", "fromNode": "gateway", "toNode": "user", "fromSide": "bottom", "toSide": "top"},
-    {"id": "e2", "fromNode": "gateway", "toNode": "order", "fromSide": "bottom", "toSide": "top"},
-    {"id": "e3", "fromNode": "gateway", "toNode": "product", "fromSide": "bottom", "toSide": "top"},
-    {"id": "e4", "fromNode": "gateway", "toNode": "payment", "fromSide": "bottom", "toSide": "top"},
-    {"id": "e5", "fromNode": "order", "toNode": "db", "fromSide": "bottom", "toSide": "top"},
-    {"id": "e6", "fromNode": "payment", "toNode": "mq", "fromSide": "bottom", "toSide": "top"}
+    {
+      "id": "e1",
+      "fromNode": "gateway",
+      "fromSide": "bottom",
+      "toNode": "user_svc",
+      "toSide": "top"
+    },
+    {
+      "id": "e2",
+      "fromNode": "gateway",
+      "fromSide": "bottom",
+      "toNode": "order_svc",
+      "toSide": "top"
+    },
+    {
+      "id": "e3",
+      "fromNode": "gateway",
+      "fromSide": "bottom",
+      "toNode": "product_svc",
+      "toSide": "top"
+    },
+    {
+      "id": "e4",
+      "fromNode": "user_svc",
+      "fromSide": "bottom",
+      "toNode": "db",
+      "toSide": "top"
+    },
+    {
+      "id": "e5",
+      "fromNode": "order_svc",
+      "fromSide": "bottom",
+      "toNode": "mq",
+      "toSide": "top"
+    },
+    {
+      "id": "e6",
+      "fromNode": "product_svc",
+      "fromSide": "bottom",
+      "toNode": "cache",
+      "toSide": "top"
+    }
   ]
 }
 ```
+
+---
+
+**注意事项：**
+- 所有 y 坐标使用负数，从顶部向下递减
+- 节点 text 支持多行，使用 `\n` 换行
+- 层标签固定在 x: -40，内容节点从 x: 200 开始
+- 同层多个节点横向排列，间距 360px
+- 写入文件时使用 `JSON.stringify(canvasData, null, 0)` 压缩格式
 
 ---
 
